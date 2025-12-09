@@ -50,3 +50,31 @@ Example
 |   Start   | --> | Developer |    Message    |  Reviewer |    Message    |  Testing  | --> |  Complete |
 +-----------+     +-----------+ <--Rollback-- +-----------+ <--Rollback-- +-----------+     +-----------+
 ```
+
+## Environment
+
+| Component | Version/Details |
+|-----------|-----------------|
+| Base Image | Ubuntu 24.04 |
+| Go | 1.25 |
+| Web Framework | Fiber v2.52.5 |
+
+## Quick Start
+
+```bash
+# Build the Docker image
+docker build -t wlgoagentscoopmcp .
+
+# Run the container
+docker run -d -p 3000:3000 -p 3001:3001 -v .:/app -w /app --name wlgoagentscoopmcp wlgoagentscoopmcp
+
+# start server
+docker exec -d wlgoagentscoopmcp bash -c "go run main.go"
+
+# Test the Ping endpoint
+curl http://localhost:3000/ping
+```
+
+## Documentation
+
+- [Agent Communication Guide](docs/agent-guide.md) - How to connect AI agents and use the MCP tools

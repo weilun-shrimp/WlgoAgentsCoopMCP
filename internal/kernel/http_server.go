@@ -1,0 +1,63 @@
+package kernel
+
+import (
+	"fmt"
+	"os"
+	"syscall"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/weilun-shrimp/wlgo_svc_lifecycle_mgr"
+)
+
+type HttpServer struct {
+	wlgo_svc_lifecycle_mgr.ServiceProvider
+	app *fiber.App
+}
+
+func NewHttpServer() *HttpServer {
+	return &HttpServer{}
+}
+
+func (s *HttpServer) GetName() string {
+	return "HttpServer"
+}
+
+func (s *HttpServer) Begin() error {
+	s.app = fiber.New(fiber.Config{
+		AppName: os.Getenv("APP_NAME"),
+	})
+
+	s.registerRoutes()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
+	go func() {
+		if err := s.app.Listen(":" + port); err != nil {
+			fmt.Printf("HttpServer error: %v\n", err)
+			// Send SIGINT to current process to trigger graceful shutdown
+			syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		}
+	}()
+
+	fmt.Printf("HttpServer started on port %s\n", port)
+	return nil
+}
+
+func (s *HttpServer) End() error {
+	if s.app != nil {
+		fmt.Println("HttpServer shutting down...")
+		return s.app.Shutdown()
+	}
+	return nil
+}
+
+func (s *HttpServer) registerRoutes() {
+	s.app.Get("/ping", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"msg": "Pong",
+		})
+	})
+}
