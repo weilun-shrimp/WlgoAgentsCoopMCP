@@ -75,10 +75,12 @@ func (s *MCPServer) Begin() error {
 		port = "3001"
 	}
 
-	// Create HTTP handler using SSE transport
-	handler := mcp.NewSSEHandler(func(r *http.Request) *mcp.Server {
+	// Create HTTP handler using Streamable HTTP transport (replaces deprecated SSE)
+	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return s.server
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{
+		Stateless: true, // Simpler mode - no session ID validation needed
+	})
 
 	s.httpServer = &http.Server{
 		Addr:    ":" + port,

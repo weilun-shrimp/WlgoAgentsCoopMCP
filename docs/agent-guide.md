@@ -26,7 +26,7 @@ Add the MCP server to your Claude Code configuration file (`.mcp.json` in projec
 {
   "mcpServers": {
     "agents-coop": {
-      "type": "sse",
+      "type": "http",
       "url": "http://localhost:3001"
     }
   }
@@ -35,10 +35,10 @@ Add the MCP server to your Claude Code configuration file (`.mcp.json` in projec
 
 ### Other MCP-Compatible Agents
 
-For other agents, configure the MCP SSE endpoint:
+For other agents, configure the MCP Streamable HTTP endpoint:
 
 - **URL**: `http://localhost:3001`
-- **Transport**: SSE (Server-Sent Events)
+- **Transport**: Streamable HTTP (MCP 2025-03-26 spec)
 
 ## Available Tools
 
