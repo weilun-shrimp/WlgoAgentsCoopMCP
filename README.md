@@ -53,7 +53,7 @@ WlgoAgentsCoopMCP is an MCP server that provides three simple tools for agent-to
 docker build -t wlgoagentscoopmcp .
 
 # Run the container
-docker run -d -p 3000:3000 -p 3001:3001 --name wlgoagentscoopmcp wlgoagentscoopmcp
+docker run -d -p 3000:3000 -w /app -v .:/app --name wlgoagentscoopmcp wlgoagentscoopmcp
 
 # Start the server
 docker exec -d wlgoagentscoopmcp bash -c "go run main.go"
@@ -72,7 +72,7 @@ go mod download
 go run main.go
 ```
 
-The MCP server runs on port `3001` by default.
+The MCP server runs on WebSocket at `ws://localhost:3000/mcp`.
 
 ### 2. Register MCP Server to Your AI CLI Tool
 
@@ -84,8 +84,8 @@ Add to your MCP configuration file:
 {
   "mcpServers": {
     "agents-coop": {
-      "type": "http",
-      "url": "http://localhost:3001"
+      "type": "websocket",
+      "url": "ws://localhost:3000/mcp"
     }
   }
 }
@@ -118,4 +118,5 @@ To communicate with other agents, use these MCP tools:
 |---------------|--------------|
 | Go            | 1.25         |
 | Base Image    | Ubuntu 24.04 |
-| Web Framework | Fiber v2.52.5|
+| Web Framework | Fiber v2.52.6|
+| MCP Transport | WebSocket    |

@@ -42,6 +42,4 @@ eg.
 API Includings
 - handler (Ping) return "Pong"
 - CRUD post handlers to post service
-
-
 ```

@@ -27,10 +27,6 @@ func main() {
 	httpServer := kernel.NewHttpServer()
 	manager.AddService(httpServer)
 
-	// MCP Server for agent communication
-	mcpServer := kernel.NewMCPServer()
-	manager.AddService(mcpServer)
-
 	// QuitSignal as final service - blocks until SIGINT/SIGTERM received
 	quitSignal := kernel.NewQuitSignal()
 	manager.AddService(quitSignal)

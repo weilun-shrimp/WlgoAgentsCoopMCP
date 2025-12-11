@@ -7,7 +7,8 @@ Get multi-agent cooperation running in 5 minutes.
 **Option A: Docker**
 ```bash
 docker build -t wlgo-agents-coop-mcp .
-docker run -p 3001:3001 wlgo-agents-coop-mcp
+docker run -d -p 3000:3000 -w /app -v .:/app --name wlgo-agents-coop-mcp wlgo-agents-coop-mcp
+docker exec -d wlgo-agents-coop-mcp bash -c "go run main.go"
 ```
 
 **Option B: Go directly**
@@ -15,7 +16,7 @@ docker run -p 3001:3001 wlgo-agents-coop-mcp
 go run main.go
 ```
 
-Server runs at `http://localhost:3001/mcp`
+Server runs at `ws://localhost:3000/mcp` (WebSocket)
 
 ## 2. Configure Your AI Tool
 
@@ -25,8 +26,8 @@ Add MCP server to your AI CLI tool config (e.g., Claude Code):
 {
   "mcpServers": {
     "agents-coop": {
-      "type": "http",
-      "url": "http://localhost:3001"
+      "type": "websocket",
+      "url": "ws://localhost:3000/mcp"
     }
   }
 }
