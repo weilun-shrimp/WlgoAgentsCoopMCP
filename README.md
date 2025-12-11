@@ -1,80 +1,121 @@
 # WlgoAgentsCoopMCP
 
-## Overview
-**WlgoAgentsCoopMCP** (Wlgo Agents Cooperative Multi-Agent Communication Pipeline) is a server that allows multiple AI agents to connect, read task goals and their role-specific prompts, and collaboratively complete tasks in a structured, automated workflow. Tasks only start processing when the human operator triggers the **task start API**, giving full control over execution while supporting autonomous agent collaboration.
+## Problem
 
-## Features
-- **Controlled execution:** Agents wait for a task start signal before processing.  
-- **Flexible pipeline:** Supports multiple stages and any type of agent roles.  
-- **Autonomous collaboration:** Agents communicate, iterate, and progress tasks without human intervention.  
-- **Scalable and extensible:** Multiple agents and multiple tasks can run concurrently.  
-- **Transparent logging:** Full auditability of messages, outputs, and rollback.
+Current AI agents work in isolation. Each agent handles a single task and requires human intervention to coordinate with other agents. This creates bottlenecks:
 
-## System Workflow
+- Humans must manually pass outputs between agents
+- Humans must review intermediate results at every step
+- Complex tasks get fragmented into small, disconnected pieces
+- The human becomes the communication layer between AI systems
 
-1. **Task Creation**
-   - A human operator creates a task and defines its goal.  
-   - Agents are assigned to the task with role-specific prompts.  
-   - The task is stored on the MCP server in a **waiting state**.
+## Goal
 
-2. **Agent Connection**
-   - Agents connect to the MCP server and read the task goal and their prompts.  
-   - Agents remain in a ready/waiting state until the task is started.
+Enable AI agents to collaborate autonomously on high-level tasks. Humans should only need to:
 
-3. **Task Start**
-   - The operator triggers the task using the **task start API**.  
-   - The MCP server signals all connected agents to begin processing.  
+1. Define the goal
+2. Review the final result
 
-4. **Pipeline Processing**
-   - Tasks move through a **multi-stage pipeline**, where each agent performs its function.  
-   - Agents communicate structured messages including outputs, approvals, and rollback.  
-   - Failed outputs are sent back upstream for revision, creating an **iterative rollback loop**.  
-   - Tasks continue iterating until all stages pass successfully.
+Everything in between — coordination, iteration, feedback loops — should happen agent-to-agent without human interrupt.
 
-5. **Completion and Logging**
-   - Once all stages pass, the task is marked as complete.  
-   - All communications, outputs, and rollback are logged for traceability.
+## How It Works
 
+WlgoAgentsCoopMCP is an MCP server that provides three simple tools for agent-to-agent messaging:
 
+| Tool   | Description                              |
+|--------|------------------------------------------|
+| `send` | Send a message to another agent          |
+| `get`  | Wait and receive a message               |
+| `ack`  | Acknowledge and remove message from storage |
 
-## Visualize Agents cooperation pipeline flow
 ```
-+-----------+     +-----------+ ---Commit---> +-----------+ ---Commit---> +-----------+     +-----------+
-|   Start   | --> |   Agent1  |    Message    |   Agent2  |    Message    |   Agent3  | --> |  Complete |
-+-----------+     +-----------+ <--Rollback-- +-----------+ <--Rollback-- +-----------+     +-----------+
+┌─────────────┐                      ┌─────────────┐
+│   Agent A   │  send(to: "B", ...)  │   Agent B   │
+│             │ ────────────────────>│             │
+│             │                      │  get("B")   │
+│             │                      │  ack(msg)   │
+│             │                      │             │
+│             │  send(to: "A", ...)  │             │
+│             │ <────────────────────│             │
+│  get("A")   │                      │             │
+│  ack(msg)   │                      │             │
+└─────────────┘                      └─────────────┘
 ```
-
-Example
-```
-+-----------+     +-----------+ ---Commit---> +-----------+ ---Commit---> +-----------+     +-----------+
-|   Start   | --> | Developer |    Message    |  Reviewer |    Message    |  Testing  | --> |  Complete |
-+-----------+     +-----------+ <--Rollback-- +-----------+ <--Rollback-- +-----------+     +-----------+
-```
-
-## Environment
-
-| Component | Version/Details |
-|-----------|-----------------|
-| Base Image | Ubuntu 24.04 |
-| Go | 1.25 |
-| Web Framework | Fiber v2.52.5 |
 
 ## Quick Start
 
+### 1. Deploy the Server
+
+**Option A: Using Docker (Recommended)**
+
 ```bash
-# Build the Docker image
+# Build the image
 docker build -t wlgoagentscoopmcp .
 
 # Run the container
-docker run -d -p 3000:3000 -p 3001:3001 -v .:/app -w /app --name wlgoagentscoopmcp wlgoagentscoopmcp
+docker run -d -p 3000:3000 -p 3001:3001 --name wlgoagentscoopmcp wlgoagentscoopmcp
 
-# start server
+# Start the server
 docker exec -d wlgoagentscoopmcp bash -c "go run main.go"
 
-# Test the Ping endpoint
+# Verify it's running
 curl http://localhost:3000/ping
+```
+
+**Option B: Run Directly**
+
+```bash
+# Install dependencies
+go mod download
+
+# Run the server
+go run main.go
+```
+
+The MCP server runs on port `3001` by default.
+
+### 2. Register MCP Server to Your AI CLI Tool
+
+Add to your MCP configuration file:
+
+**Claude Code CLI** (`.mcp.json` or `~/.claude.json`):
+
+```json
+{
+  "mcpServers": {
+    "agents-coop": {
+      "type": "http",
+      "url": "http://localhost:3001"
+    }
+  }
+}
+```
+
+### 3. Teach Your AI Agents to Use the Tools
+
+Add instructions to your agent's system prompt:
+
+```
+You are "developer" in a multi-agent system.
+
+To communicate with other agents, use these MCP tools:
+- send(from: "developer", to: "<agent-name>", content: "<message>") - Send a message
+- get(agent_name: "developer") - Wait for incoming messages (blocks until received)
+- ack(message_id: "<id>") - Acknowledge and remove the message after processing
 ```
 
 ## Documentation
 
-- [Agent Communication Guide](docs/agent-guide.md) - How to connect AI agents and use the MCP tools
+- [Quick Start](docs/quick-start.md) - Get running in 5 minutes
+- [Agent Communication Guide](docs/agent-guide.md) - Detailed tool reference and examples
+- [Example: Two-Agent Pipeline](docs/examples/two-agent-pipeline.md) - Developer + Reviewer
+- [Example: Multi-Agent Pipeline](docs/examples/multi-agent-pipeline.md) - Dev → Review → Test → Deploy
+- [Example: Task Manager](docs/examples/task-manager.md) - Human → Manager → Multiple Agents
+
+## Environment
+
+| Component     | Version      |
+|---------------|--------------|
+| Go            | 1.25         |
+| Base Image    | Ubuntu 24.04 |
+| Web Framework | Fiber v2.52.5|
