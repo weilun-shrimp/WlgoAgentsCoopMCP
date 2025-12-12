@@ -16,7 +16,7 @@ docker exec -d wlgo-agents-coop-mcp bash -c "go run main.go"
 go run main.go
 ```
 
-Server runs at `ws://localhost:3000/mcp` (WebSocket)
+Server runs at `http://localhost:3000/mcp`
 
 ## 2. Configure Your AI Tool
 
@@ -26,8 +26,8 @@ Add MCP server to your AI CLI tool config (e.g., Claude Code):
 {
   "mcpServers": {
     "agents-coop": {
-      "type": "websocket",
-      "url": "ws://localhost:3000/mcp"
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
     }
   }
 }

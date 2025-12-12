@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
 )
 
-// Handler handles MCP WebSocket connections
+// Handler handles MCP HTTP requests
 type Handler struct {
 	store    *MessageStore
 	shutdown <-chan struct{}
@@ -20,33 +20,29 @@ func NewHandler(store *MessageStore, shutdown <-chan struct{}) *Handler {
 	}
 }
 
-func (h *Handler) HandleWebSocket(c *websocket.Conn) {
-	defer c.Close()
-
-	fmt.Printf("[MCP] WebSocket client connected: %s\n", c.RemoteAddr())
-
-	for {
-		_, msg, err := c.ReadMessage()
-		if err != nil {
-			fmt.Printf("[MCP] WebSocket read error: %v\n", err)
-			return
-		}
-
-		var req JSONRPCRequest
-		if err := json.Unmarshal(msg, &req); err != nil {
-			h.sendError(c, nil, -32700, "Parse error", nil)
-			continue
-		}
-
-		response := h.handleRequest(&req)
-		if response != nil {
-			data, _ := json.Marshal(response)
-			if err := c.WriteMessage(websocket.TextMessage, data); err != nil {
-				fmt.Printf("[MCP] WebSocket write error: %v\n", err)
-				return
-			}
-		}
+// HandleHTTP handles MCP JSON-RPC requests over HTTP POST
+func (h *Handler) HandleHTTP(c *fiber.Ctx) error {
+	var req JSONRPCRequest
+	if err := json.Unmarshal(c.Body(), &req); err != nil {
+		return c.Status(400).JSON(JSONRPCResponse{
+			JSONRPC: "2.0",
+			ID:      nil,
+			Error: &RPCError{
+				Code:    -32700,
+				Message: "Parse error",
+			},
+		})
 	}
+
+	fmt.Printf("[MCP] %s (id=%v)\n", req.Method, req.ID)
+
+	response := h.handleRequest(&req)
+	if response == nil {
+		// For notifications, return 202 Accepted with no body
+		return c.SendStatus(202)
+	}
+
+	return c.JSON(response)
 }
 
 func (h *Handler) handleRequest(req *JSONRPCRequest) *JSONRPCResponse {
@@ -107,11 +103,12 @@ func (h *Handler) handleToolsList(req *JSONRPCRequest) *JSONRPCResponse {
 		},
 		{
 			Name:        "get",
-			Description: "Wait for and retrieve a message sent to this agent. Blocks until a message is available.",
+			Description: "Wait for and retrieve a message sent to this agent. Returns null message if timeout is reached.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]Property{
 					"agent_name": {Type: "string", Description: "The agent name waiting for messages"},
+					"timeout":    {Type: "number", Description: "Timeout in seconds to wait for a message (default: 30)"},
 				},
 				Required: []string{"agent_name"},
 			},
@@ -175,18 +172,4 @@ func (h *Handler) handleToolCall(req *JSONRPCRequest) *JSONRPCResponse {
 		ID:      req.ID,
 		Result:  result,
 	}
-}
-
-func (h *Handler) sendError(c *websocket.Conn, id interface{}, code int, message string, data interface{}) {
-	response := JSONRPCResponse{
-		JSONRPC: "2.0",
-		ID:      id,
-		Error: &RPCError{
-			Code:    code,
-			Message: message,
-			Data:    data,
-		},
-	}
-	respData, _ := json.Marshal(response)
-	c.WriteMessage(websocket.TextMessage, respData)
 }

@@ -72,7 +72,7 @@ go mod download
 go run main.go
 ```
 
-The MCP server runs on WebSocket at `ws://localhost:3000/mcp`.
+The MCP server runs on HTTP at `http://localhost:3000/mcp`.
 
 ### 2. Register MCP Server to Your AI CLI Tool
 
@@ -84,8 +84,8 @@ Add to your MCP configuration file:
 {
   "mcpServers": {
     "agents-coop": {
-      "type": "websocket",
-      "url": "ws://localhost:3000/mcp"
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
     }
   }
 }
@@ -119,4 +119,4 @@ To communicate with other agents, use these MCP tools:
 | Go            | 1.25         |
 | Base Image    | Ubuntu 24.04 |
 | Web Framework | Fiber v2.52.6|
-| MCP Transport | WebSocket    |
+| MCP Transport | HTTP         |

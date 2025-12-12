@@ -6,7 +6,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/weilun-shrimp/wlgo_svc_lifecycle_mgr"
 
@@ -73,13 +72,6 @@ func (s *HttpServer) registerRoutes() {
 		})
 	})
 
-	// WebSocket MCP endpoint
-	s.app.Use("/mcp", func(c *fiber.Ctx) error {
-		if websocket.IsWebSocketUpgrade(c) {
-			return c.Next()
-		}
-		return fiber.ErrUpgradeRequired
-	})
-
-	s.app.Get("/mcp", websocket.New(s.mcpHandler.HandleWebSocket))
+	// MCP HTTP endpoint (Streamable HTTP transport)
+	s.app.Post("/mcp", s.mcpHandler.HandleHTTP)
 }

@@ -66,7 +66,14 @@ func (t *Tools) Get(args map[string]interface{}) ToolResult {
 		return t.errorResult("agent_name is required")
 	}
 
+	// Default timeout: 30 seconds
+	timeoutSec := 30.0
+	if t, ok := args["timeout"].(float64); ok && t > 0 {
+		timeoutSec = t
+	}
+
 	ch := t.store.GetOrCreateChannel(agentName)
+	timeout := time.Duration(timeoutSec) * time.Second
 
 	select {
 	case msg := <-ch:
@@ -75,6 +82,14 @@ func (t *Tools) Get(args map[string]interface{}) ToolResult {
 			Success:   true,
 			MessageID: msg.ID,
 			Message:   msg,
+		}
+		return t.successResult(output)
+	case <-time.After(timeout):
+		fmt.Printf("[MCP] Agent %s get timeout after %.0fs\n", agentName, timeoutSec)
+		output := MessageOutput{
+			Success: true,
+			Message: nil,
+			Hint:    "No message received within timeout. You should call get() again to keep listening for messages. And set timeout more longer. eg. 120s.",
 		}
 		return t.successResult(output)
 	case <-t.shutdown:

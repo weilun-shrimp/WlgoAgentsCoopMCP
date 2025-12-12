@@ -17,6 +17,7 @@ type MessageOutput struct {
 	MessageID string   `json:"message_id,omitempty"`
 	Message   *Message `json:"message,omitempty"`
 	Error     string   `json:"error,omitempty"`
+	Hint      string   `json:"hint,omitempty"`
 }
 
 // MessageStore manages messages between agents
